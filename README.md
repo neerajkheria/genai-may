@@ -1,6 +1,6 @@
-# Enterprise GenAI Training Program — Codebase
+# Enterprise GenAI  — Codebase
 
-A complete, GitHub-ready collection of Python code samples, app modules, and reference implementations from the **15-Day Enterprise AI Training Bootcamp** (Insurance & Banking Domain).
+A complete, GitHub-ready collection of Python code samples, app modules, and reference implementations from the **Bootcamp** (Insurance & Banking Domain).
 
 ## Folder Structure
 
