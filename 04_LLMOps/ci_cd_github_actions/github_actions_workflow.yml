@@ -1,0 +1,64 @@
+# .github/workflows/ci-cd.yml
+# CI/CD Pipeline for GenAI Training App
+# Triggers on every push to main/develop branches
+
+name: GenAI App CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles("requirements.txt") }}
+          
+      - name: Install dependencies
+        run: |
+          pip install pytest python-dotenv pydantic
+          pip install langchain langchain-openai openai --quiet
+          
+      - name: Run unit tests
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          pytest 04_LLMOps/ci_cd_github_actions/test_agent.py -v --tb=short
+
+  deploy:
+    name: Deploy to EC2
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == "refs/heads/main" && github.event_name == "push"
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /home/ubuntu/genai-app
+            git pull origin main
+            source venv/bin/activate
+            pip install -r requirements.txt --quiet
+            sudo systemctl restart genai-app
+            sleep 5
+            curl -f http://localhost:8000/health || exit 1
+            echo "Deployment successful"
